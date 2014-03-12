@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Synologydownloader by devnore</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/main.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+
+      <header>
+        <h1>Synologydownloader</h1>
+        <p></p>
+      </header>
+
+      <div id="banner">
+        <span id="logo"></span>
+
+        <a href="https://github.com/devnore/SynologyDownloader" class="button fork"><strong>View On GitHub</strong></a>
+        <div class="downloads">
+          <span>Downloads:</span>
+          <ul>
+            <li><a href="https://github.com/devnore/SynologyDownloader/zipball/master" class="button">ZIP</a></li>
+            <li><a href="https://github.com/devnore/SynologyDownloader/tarball/master" class="button">TAR</a></li>
+          </ul>
+        </div>
+      </div><!-- end banner -->
+
+    <div class="wrapper">
+      <nav>
+        <ul></ul>
+      </nav>
+      <section>
+        <h1>
+<a name="synologydownloader" class="anchor" href="#synologydownloader"><span class="octicon octicon-link"></span></a>SynologyDownloader</h1>
+
+<p>Tested with ruby version: 1.9.3p484</p>
+
+<h1>
+<a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h1>
+
+<ol>
+<li>
+<p>Set it up.</p>
+
+<pre><code>git clone https://github.com/devnore/SynologyDownloader.git
+cd SynologyDownloader
+bundle install
+mkdir ~/.SynologyDownloader
+cp settings_default.yml ~/.SynologyDownloader/settings.yml
+</code></pre>
+</li>
+<li>Edit ~/.SynologyDownloader/settings.yml with your info.</li>
+</ol><h1>
+<a name="configuration" class="anchor" href="#configuration"><span class="octicon octicon-link"></span></a>Configuration</h1>
+
+<p>Add RSS-feeds with torrents to your settings.yml-file to download them. The script will create a yml-file with information on already downloaded torrents (Sent to be downloaded).</p>
+
+<p>Prefix the name of the RSS with PIRATE- to take the title of the rss-entry and search for it on Piratebay.</p>
+
+<h1>
+<a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h1>
+
+<p>Run the app.</p>
+
+<h1>
+<a name="disclamer" class="anchor" href="#disclamer"><span class="octicon octicon-link"></span></a>Disclamer</h1>
+
+<p>Bugs and feature-requests are welcome, but don't expect to much as I'm only doing this app as part of learing Ruby.</p>
+      </section>
+      <footer>
+        <p>Project maintained by <a href="https://github.com/devnore">devnore</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+    
+  </body>
+</html>
