@@ -4,6 +4,7 @@ SynologyDownloader
 Tested with ruby version: 1.9.3p484
 
 # Installation
+http://devnore.github.io/SynologyDownloader/
 
 1. Set it up.
 
