@@ -1,0 +1,9 @@
+---
+downloader:
+  host: <Synology-URL>
+  port: <PORT>
+  username: <USER>
+  password: <PASSWORD>
+rss:
+  PIRATE-TORRENT: http://www.example.com/rss/ # Get list from rss and then try to download the torrent from piratebay instead.
+  TORRENT:  http://www.example.com/rss/ # Get list from rss and download them

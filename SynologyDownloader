@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby
+# encoding: UTF-8
+
+$LOAD_PATH.unshift '.'
+require_relative 'lib/synologydownloader.rb'
+Signal.trap('INT') {}
+
+fetcher = SynologyDownloader.new
+fetcher.load_rss
+fetcher.save_db if fetcher.download_start
