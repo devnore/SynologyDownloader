@@ -1,6 +1,7 @@
 SynologyDownloader
 ==================
 
+Tested with ruby version: 1.9.3p484
 
 # Installation
 
