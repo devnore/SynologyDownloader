@@ -47,7 +47,6 @@ class SynologyDownloader
     catch :success do
       tries.times do |i|
         begin
-
           throw :success, open(uri)
         rescue
           print '.'
