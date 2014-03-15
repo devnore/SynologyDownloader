@@ -39,7 +39,6 @@ module PirateSearch
 
   def self.get(name)
     search_url = 'http://thepiratebay.org/search/'
-    puts "Getting list. for #{name} => #{search_url}#{URI.escape(name)}"
     Nokogiri::HTML(open("#{search_url}#{URI.escape(name)}/0/7/0"))
       .xpath('//*[@id="searchResult"]').search('tr')
     rescue

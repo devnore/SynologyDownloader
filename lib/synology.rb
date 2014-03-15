@@ -15,7 +15,7 @@ module Synology
       @base = "http://#{args['host']}:#{args['port']}/webapi"
     end
 
-    def login # rubocop:disable LineLength
+    def login
       login_url = "#{@base}/auth.cgi?api=SYNO.API.Auth&version=2&method=login&account=#{@username}&passwd=#{@password}&session=DownloadStation&format=sid"
       data = JSON.parse(open(login_url).read)
       @sid = data['data']['sid'] if data['success']
@@ -32,10 +32,7 @@ module Synology
 
     def download(u)
       url = CGI.escape(u)
-      api = 'api=SYNO.DownloadStation.Task'
-      version = 'version=1'
-      method = 'method=create'
-      download_url = "#{@base}/DownloadStation/task.cgi?#{api}&#{version}&#{method}&_sid=#{@sid}&uri=#{url}"
+      download_url = "#{@base}/DownloadStation/task.cgi?api=SYNO.DownloadStation.Task&version=1&method=create&_sid=#{@sid}&uri=#{url}"
       data = JSON.parse(open(download_url).read)
       data['success']
     end

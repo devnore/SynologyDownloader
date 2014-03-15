@@ -1,2 +1,8 @@
 CyclomaticComplexity:
   Severity: warning
+
+NumericLiterals:
+  Enabled: false
+
+LineLength:
+  Enabled: false

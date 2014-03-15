@@ -39,21 +39,22 @@ class SynologyDownloader
 
   def save_db
     File.open(@database_file, 'w') do |file|
+      puts "saved: #{@database_file}"
       file.write @state_db.to_yaml
     end
   end
 
-  def open_with_retry(uri, tries = 5) # rubocop:disable MethodLength
-    catch :success do
-      tries.times do |i|
-        begin
-          throw :success, open(uri)
-        rescue
-          print '.'
-          sleep(1 / 2)
+  def open_with_retry(url, n = 5)
+    1.upto(n) do
+      begin
+        open(url) do |handle|
+          yield handle
         end
+        break
+      rescue
+        print '.'
+        sleep(1 / 2)
       end
-      return nil
     end
   end
 
@@ -84,7 +85,11 @@ class SynologyDownloader
   def download_start
     fail('wrong args.') unless @settings['downloader']
     dl = Synology::DSM.new(@settings['downloader'])
-    add_downloads(dl) if dl.login
+    if dl.login
+      add_downloads(dl)
+    else
+      puts 'No connection to Server'
+    end
     dl.logout
   end
 
