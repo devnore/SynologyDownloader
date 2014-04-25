@@ -15,7 +15,6 @@ class SynologyDownloader
   attr_reader :database_file , :state_db, :downloader
   attr_writer :downloader
 
-  # rubocop:disable MethodLength
   def initialize(database_file = nil, settings_file = nil)
     FileUtils.mkdir_p(File.dirname(File.expand_path('~/.SynologyDownloader/')))
 
@@ -39,12 +38,12 @@ class SynologyDownloader
 
   def save_db
     File.open(@database_file, 'w') do |file|
-      puts "saved: #{@database_file}"
+      puts "saving: #{@database_file}"
       file.write @state_db.to_yaml
     end
   end
 
-  def open_with_retry(url, n = 5)
+  def open_with_retry(url, n = 5) # rubocop:disable MethodLength
     1.upto(n) do
       begin
         open(url) do |handle|
@@ -63,18 +62,10 @@ class SynologyDownloader
       print "\nChecking: #{k}"
       open_with_retry(u) do |rss|
         continue if rss.nil?
-        feed = RSS::Parser.parse(rss)
-        feed.items.each do |item|
-          drl = nil
+        RSS::Parser.parse(rss).items.each do |item|
           if !@state_db[item.title] || @state_db[item.title]['done'] == 0
-            if k.start_with?('PIRATE-')
-              drl = PirateSearch.search(item.title)
-            else
-              drl = item.link
-            end
-            @state_db[item.title] = {
-              'date' => @now, 'url' => drl, 'done' => false
-            } if drl
+            drl = k.start_with?('PIRATE-') ? PirateSearch.search(item.title) : item.link
+            @state_db[item.title] = { 'date' => @now, 'url' => drl, 'done' => false } if drl
           end
         end
       end
@@ -88,7 +79,7 @@ class SynologyDownloader
     if dl.login
       add_downloads(dl)
     else
-      puts 'No connection to Server'
+      puts 'No connection to Server.'
     end
     dl.logout
   end
@@ -101,9 +92,7 @@ class SynologyDownloader
 
   def add_downloads(dl)
     @state_db.each do |key, item|
-      next if item['done'] == true
-      downloaded_ok = dl.download(item['url'])
-      item['done'] = downloaded_ok
+      item['done'] = dl.download(item['url']) unless item['done']
     end
   end
 
