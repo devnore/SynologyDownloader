@@ -9,6 +9,7 @@ require 'pp'
 require 'fileutils'
 require_relative 'synology'
 require_relative 'piratesearch'
+require_relative 'synologymover'
 
 # Main Class
 class SynologyDownloader
@@ -57,15 +58,38 @@ class SynologyDownloader
     end
   end
 
+  def generate_move_script(item)
+    download = false
+    return download if item.nil?
+    info = ToName.to_name(item)
+    data = { 'name' => info.name, 'series' => info.series.to_s.rjust(2, '0'), 'episode' => info.episode.to_s.rjust(2, '0') }
+
+    puts data
+    content = ''
+
+    download = { 'file' => content, 'done' => false }
+    download
+    # TODO: Movescript data
+    # Add Script here... how do we build this?
+    # return an hash with file = script and make it so that it can be downloaded to the DSM in the same
+    # way that the torrents are downloaded.
+    # Should it be a wrapper-script that we put on the DSM that will pull in the information and process the file
+    # or should it be self-containd and remove itself on finish?
+    # What if we need to create the Directory? (new Season/new Show)
+  end
+
   def load_rss # rubocop:disable MethodLength
     @settings['rss'].each do |k, u|
       print "\nChecking: #{k}"
       open_with_retry(u) do |rss|
         continue if rss.nil?
         RSS::Parser.parse(rss).items.each do |item|
+          test = get_show_info(item.title)
+          puts test
           if !@state_db[item.title] || @state_db[item.title]['done'] == 0
             drl = k.start_with?('PIRATE-') ? PirateSearch.search(item.title) : item.link
-            @state_db[item.title] = { 'date' => @now, 'url' => drl, 'done' => false } if drl
+            @state_db[item.title] = { 'date' => @now, 'url' => drl, 'done' => false, 'movescript' => generate_move_script(item.title) } if drl
+            # @state_db[item.title] = { 'date' => @now, 'url' => drl, 'done' => false } if drl
           end
         end
       end
