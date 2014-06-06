@@ -9,7 +9,6 @@ require 'pp'
 require 'fileutils'
 require_relative 'synology'
 require_relative 'piratesearch'
-require_relative 'synologymover'
 
 # Main Class
 class SynologyDownloader

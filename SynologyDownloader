@@ -9,14 +9,7 @@ Signal.trap('INT') {}
 
 # # TODO: GEt Opts
 # 2 Opts
-
-# 1. Download (current standard)
-
-# 2. Move files in Downloads to Series
-# Search for video-types in download-folder.
-# if series move it to Series/ShowName/Season
-# if Movie, Move it to /video/movies/New Movies
-
+# Move this to SynologyDownloader.run
 
 fetcher = SynologyDownloader.new
 fetcher.move_start
