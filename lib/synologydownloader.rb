@@ -32,6 +32,13 @@ class SynologyDownloader
     @now = DateTime.now.strftime('%Y-%m-%d')
   end
 
+  # Run this app
+  def run
+    move_start
+    load_rss
+    save_db if fetcher.download_start
+  end
+
   def load_yml(file)
     return  YAML.load_file file
   rescue
