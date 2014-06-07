@@ -7,6 +7,7 @@ require 'yaml'
 require 'date'
 require 'pp'
 require 'fileutils'
+require 'to_name'
 require_relative 'synology'
 require_relative 'piratesearch'
 
