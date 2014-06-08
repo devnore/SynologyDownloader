@@ -5,14 +5,13 @@ require 'rss'
 require 'open-uri'
 require 'yaml'
 require 'date'
-require 'pp'
 require 'fileutils'
 require 'to_name'
 require_relative 'synology'
 require_relative 'piratesearch'
 
 # Main Class
-class SynologyDownloader
+class SynologyDownloader # rubocop:disable ClassLength
   attr_reader :database_file , :state_db, :downloader, :settings_dir, :dl
   attr_writer :downloader, :dl
 
@@ -38,7 +37,6 @@ class SynologyDownloader
     else
       puts 'No connection to Server.'
     end
-  ensure
     @dl.logout
   end
 
@@ -56,7 +54,7 @@ class SynologyDownloader
     end
   end
 
-  def open_with_retry(url, n = 5) # rubocop:disable MethodLength
+  def open_with_retry(url, n = 5)
     1.upto(n) do
       begin
         open(url) do |handle|
@@ -64,22 +62,18 @@ class SynologyDownloader
         end
         break
       rescue
-        print '.'
         sleep(1 / 2)
       end
     end
   end
 
-  def load_rss # rubocop:disable MethodLength
+  def load_rss
     @settings['rss'].each do |k, u|
-      print "\nChecking: #{k}"
+      print "\nChecking: #{k}..."
       open_with_retry(u) do |rss|
         continue if rss.nil?
         RSS::Parser.parse(rss).items.each do |item|
-          if !@state_db[item.title] || @state_db[item.title]['done'] == false
-            drl = k.start_with?('PIRATE-') ? PirateSearch.search(item.title) : item.link
-            @state_db[item.title] = { 'date' => @now, 'url' => drl, 'done' => false } if drl
-          end
+          @state_db[item.title] = { 'date' => @now, 'url' => item.link, 'done' => false } unless @state_db[item.title]
         end
       end
     end
@@ -87,54 +81,50 @@ class SynologyDownloader
   end
 
   def download_start
-    add_downloads
-  end
-
-  def move_start
-    path = getshare(@settings['shares']['download'])
-    move_process_list(JSON.parse(@dl.list(path)), true, true)
-  end
-
-  def move_process_list(list, recursive = false, parent_is_root = true)
-    list['data']['files'].each do |e|
-      if e['isdir'] && recursive
-        move_process_list(JSON.parse(@dl.list(e['path'])) , false, false)
-      end
-      unless @settings['file']['type']['movie'].include?(e['additional']['type'])
-        next
-      end
-      info = ToName.to_name(e['name'])
-
-      type = info.series.nil? ? 'movies' : 'series'
-      path_base = getshare(@settings['shares'][type])
-
-      case type
-      when 'movies'
-        path = ''
-        file_to_move = parent_is_root ? e['path'] : File.dirname(e['path'])
-      when 'series'
-        path = "#{info.name.gsub(/\w+/, &:capitalize)}/Season #{info.series.to_s.rjust(2, '0')}/"
-        dl.mkdir(path_base, path)
-        file_to_move = e['path']
-      end
-      dl.move(file_to_move, "#{path_base}/#{path}" , true)
-    end
-  end
-
-  private
-
-  def add_downloads
     @state_db.each do |key, item|
       item['done'] = dl.download(item['url']) unless item['done']
     end
   end
 
+  def move_start
+    path = get_share(@settings['shares']['download'])
+    move_process_list(@dl.ls(path), 1)
+  end
+
+  def move_process_list(list, depth = 0, parent_is_root = true)
+    list['data']['files'].each do |e|
+      if e['isdir'] && (depth < 0)
+        move_process_list(@dl.ls(e['path']) , depth - 1, false)
+      end
+      next unless @settings['file']['type']['movie'].include?(e['additional']['type'])
+      path = generate_move_data(e, parent_is_root)
+      path_base = get_share(@settings['shares'][type])
+      dl.mkdir(path_base, path['dest'])
+      dl.move(path['src'], path['dest'] , true)
+    end
+  end
+
+  private
+
   def merge_recursively(a, b)
     a.merge(b) { |key, a_item, b_item| merge_recursively(a_item, b_item) }
   end
 
-  def getshare(share, create = true)
-    data = dl.mkdir(share['share'], share['path'].gsub(/^[\/]+/, '')) if create
-    "#{share['share']}#{share['path']}"
+  def get_share(share)
+    "#{share['share']}#{share['path']}" if dl.mkdir(share['share'], share['path'].gsub(/^[\/]+/, ''))
+  end
+
+  def generate_move_data(file_info, parent_is_root = true)
+    ret = { 'src' => file_info['path'], 'dest' => '' }
+    info = ToName.to_name(file_info['name'])
+    type = info.series.nil? ? 'movies' : 'series'
+
+    case type
+    when 'movies'
+      ret['src'] = parent_is_root ? file_info['path'] : File.dirname(file_info['path'])
+    when 'series'
+      ret['dest'] = "#{info.name.gsub(/\w+/, &:capitalize)}/Season #{info.series.to_s.rjust(2, '0')}/"
+    end
+    ret
   end
 end
