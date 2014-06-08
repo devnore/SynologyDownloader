@@ -11,17 +11,15 @@ require_relative 'synology'
 require_relative 'piratesearch'
 
 # Main Class
-class SynologyDownloader # rubocop:disable ClassLength
+class SynologyDownloader
   attr_reader :database_file , :state_db, :downloader, :settings_dir, :dl
   attr_writer :downloader, :dl
 
-  def initialize(database_file = nil, settings_file = nil) # rubocop:disable MethodLength
-    @settings_dir =  File.expand_path('~/.SynologyDownloader/')
+  def initialize(params = {})
+    @settings_dir = params.fetch(:settings_dir, File.expand_path('~/.SynologyDownloader/'))
+    @database_file = params.fetch(:database_file, File.expand_path('~/.SynologyDownloader/database.yml'))
+    @settings_file = params.fetch(:settings_file, File.expand_path('~/.SynologyDownloader/settings.yml'))
     FileUtils.mkdir_p(File.dirname(@settings_dir))
-    database_file ||= File.expand_path('~/.SynologyDownloader/database.yml')
-    @database_file = database_file
-    settings_file ||= File.expand_path('~/.SynologyDownloader/settings.yml')
-    @settings_file = settings_file
     @settings = load_yml(@settings_file)
     @state_db = load_yml(@database_file)
     @now = DateTime.now.strftime('%Y-%m-%d')
