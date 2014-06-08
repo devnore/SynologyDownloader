@@ -12,6 +12,4 @@ Signal.trap('INT') {}
 # Move this to SynologyDownloader.run
 
 fetcher = SynologyDownloader.new
-fetcher.move_start
-fetcher.load_rss
-fetcher.save_db if fetcher.download_start
+fetcher.run
