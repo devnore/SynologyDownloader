@@ -8,7 +8,6 @@ require 'date'
 require 'fileutils'
 require 'to_name'
 require_relative 'synology'
-require_relative 'piratesearch'
 
 # Main Class
 class SynologyDownloader
@@ -19,7 +18,6 @@ class SynologyDownloader
     @settings_dir = params.fetch(:settings_dir, File.expand_path('~/.SynologyDownloader/'))
     @database_file = params.fetch(:database_file, File.expand_path('~/.SynologyDownloader/database.yml'))
     @settings_file = params.fetch(:settings_file, File.expand_path('~/.SynologyDownloader/settings.yml'))
-    FileUtils.mkdir_p(File.dirname(@settings_dir))
     @settings = load_yml(@settings_file)
     @state_db = load_yml(@database_file)
     @now = DateTime.now.strftime('%Y-%m-%d')
@@ -41,27 +39,26 @@ class SynologyDownloader
   def load_yml(file)
     return  YAML.load_file file
   rescue
-    puts "Error Loading #{file}"
     return {}
-  end
-
-  def save_db
-    File.open(@database_file, 'w') do |file|
-      puts "saving: #{@database_file}"
-      file.write @state_db.to_yaml
-    end
   end
 
   def open_with_retry(url, n = 5)
     1.upto(n) do
       begin
-        open(url) do |handle|
-          yield handle
-        end
+        open(url) { |handle| yield handle }
         break
       rescue
         sleep(1 / 2)
       end
+    end
+  end
+
+  private
+
+  def save_db
+    File.open(@database_file, 'w') do |file|
+      puts "saving: #{@database_file}"
+      file.write @state_db.to_yaml
     end
   end
 
@@ -89,21 +86,6 @@ class SynologyDownloader
     move_process_list(@dl.ls(path), 1)
   end
 
-  def move_process_list(list, depth = 0, parent_is_root = true)
-    list['data']['files'].each do |e|
-      if e['isdir'] && (depth < 0)
-        move_process_list(@dl.ls(e['path']) , depth - 1, false)
-      end
-      next unless @settings['file']['type']['movie'].include?(e['additional']['type'])
-      path = generate_move_data(e, parent_is_root)
-      path_base = get_share(@settings['shares'][type])
-      dl.mkdir(path_base, path['dest'])
-      dl.move(path['src'], path['dest'] , true)
-    end
-  end
-
-  private
-
   def merge_recursively(a, b)
     a.merge(b) { |key, a_item, b_item| merge_recursively(a_item, b_item) }
   end
@@ -112,12 +94,30 @@ class SynologyDownloader
     "#{share['share']}#{share['path']}" if dl.mkdir(share['share'], share['path'].gsub(/^[\/]+/, ''))
   end
 
-  def generate_move_data(file_info, parent_is_root = true)
-    ret = { 'src' => file_info['path'], 'dest' => '' }
-    info = ToName.to_name(file_info['name'])
-    type = info.series.nil? ? 'movies' : 'series'
+  def move_process_list(list, depth = 0, parent_is_root = true)
+    list['data']['files'].each do |e|
+      if e['isdir']
+        move_process_list(@dl.ls(e['path']) , depth - 1, false) if depth < 0
+      end
+      next if process_file_by_ext(e['additional']['type'])
+      path = generate_move_data(e, parent_is_root)
+      path_base = get_share(@settings['shares'][path['type']])
+      dl.mkdir(path_base, path['dest'])
+      dl.move(path['src'], path['dest'])
+    end
+  end
 
-    case type
+  def process_file_by_ext(extention)
+    @settings['file']['type']['video'].map! { |c| c.downcase }
+    true unless @settings['file']['type']['video'].include?(extention.downcase)
+  end
+
+  def generate_move_data(file_info, parent_is_root = true)
+    ret = { 'src' => file_info['path'], 'dest' => '' , 'type' => nil }
+    info = ToName.to_name(file_info['name'])
+    ret['type'] = info.series.nil? ? 'movies' : 'series'
+
+    case ret['type']
     when 'movies'
       ret['src'] = parent_is_root ? file_info['path'] : File.dirname(file_info['path'])
     when 'series'
