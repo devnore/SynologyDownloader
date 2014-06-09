@@ -103,7 +103,7 @@ class SynologyDownloader
       path = generate_move_data(e, parent_is_root)
       path_base = get_share(@settings['shares'][path['type']])
       dl.mkdir(path_base, path['dest'])
-      dl.move(path['src'], path['dest'])
+      dl.move(path['src'], "#{path_base}/#{path['dest']}")
     end
   end
 
