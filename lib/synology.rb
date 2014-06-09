@@ -37,24 +37,28 @@ module Synology
     end
 
     def download(url)
+      false unless @logged_in
       url_file = 'DownloadStation/task.cgi'
       fields = { 'api' => 'SYNO.DownloadStation.Task', 'method' => 'create', 'uri' => url }
       _get(url_file, @fields.merge(fields))['success']
     end
 
     def ls(folder_path)
+      false unless @logged_in
       url_file = 'FileStation/file_share.cgi'
       fields = { 'api' => 'SYNO.FileStation.List', 'method' => 'list', 'additional' => 'type', 'folder_path' => folder_path }
       _get(url_file, @fields.merge(fields))
     end
 
     def mkdir(base, path)
+      false unless @logged_in
       url_file = 'FileStation/file_crtfdr.cgi'
       fields = { 'api' => 'SYNO.FileStation.CreateFolder', 'method' => 'create', 'folder_path' => base, 'name' => path }
       _get(url_file, @fields.merge(fields))['success']
     end
 
-    def move(src_file, dst_dir, remove_src = false)
+    def move(src_file, dst_dir, remove_src = true)
+      false unless @logged_in
       url_file = 'FileStation/file_MVCP.cgi'
       fields = {
         'api' => 'SYNO.FileStation.CopyMove', 'method' => 'start', 'path' => src_file,

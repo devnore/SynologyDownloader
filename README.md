@@ -17,17 +17,16 @@ http://devnore.github.io/SynologyDownloader/
 	mkdir ~/.SynologyDownloader
 	cp settings_default.yml ~/.SynologyDownloader/settings.yml
 	```
-2. Edit ~/.SynologyDownloader/settings.yml with your info.
+2. Edit ~/.SynologyDownloader/settings.yml to your needs.
 
 
 # Configuration
 
 Add RSS-feeds with torrents to your settings.yml-file to download them. The script will create a yml-file with information on already downloaded torrents (Sent to be downloaded).
 
-Prefix the name of the RSS with PIRATE- to take the title of the rss-entry and search for it on Piratebay.
-
 
 # Usage
+edit Edit ~/.SynologyDownloader/settings.yml to add your rss-feeds.
 Run the app.
 
 # Disclamer

@@ -1,0 +1,27 @@
+---
+downloader:
+  host: <dns>
+  port: <port>
+  username: <username>
+  password: <password>
+shares:
+  download:
+    share: /video
+    path: /Download
+  series:
+    share: /video
+    path: /Series
+  movies:
+    share: /video
+    path: /Movies/Incomming
+file:
+  type:
+    video:
+      - MP4
+      - AVI
+      - MOV
+      - MKV
+      - VOB
+      - FLV
+      - OGG
+rss:
