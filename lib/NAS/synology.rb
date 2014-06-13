@@ -13,8 +13,7 @@ module NAS
       @username = args['username']
       @password = args['password']
       @base = "http://#{args['host']}:#{args['port']}/webapi"
-      @fields = {}
-      @fields['version'] = 1
+      @fields = { 'version' => 1 }
       @logged_in = false
     end
 

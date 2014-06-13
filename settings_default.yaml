@@ -1,4 +1,6 @@
 ---
+database:
+  file: ~/.SynologyDownloader/database_new.yml
 downloader:
   host: <dns>
   port: <port>

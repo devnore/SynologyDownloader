@@ -20,18 +20,14 @@ module SDD
     def initialize(params = {})
       @settings_file = File.expand_path(params.fetch(:settings_file, '~/.SynologyDownloader/settings.yml'))
       @settings = load_yml(@settings_file)
-
       @database = SDD::Database.new(@settings['database'])
-      @dl = NAS::Synology.new(@settings['downloader'])
+      @dl = NAS.get_dl(@settings['NAS'])
+      puts "RSS-Downloader #{SDD::VERSION}"
     end
 
     def run
       @database.open
       load_rss
-      # Mark all Downloaded
-      # @database.each do |k, item|
-      #   item.status = true
-      # end
       if @dl.login
         move_start
         download_start
