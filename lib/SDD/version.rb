@@ -1,5 +1,5 @@
 # encoding: UTF-8
 #
 module SDD
-  VERSION = '2.0.2'
+  VERSION = 'x.x.x'
 end
