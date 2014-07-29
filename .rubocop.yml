@@ -1,8 +1,11 @@
-CyclomaticComplexity:
-  Severity: warning
+# CyclomaticComplexity:
+#   Severity: warning
 
-NumericLiterals:
-  Enabled: false
+# NumericLiterals:
+#   Enabled: false
 
-LineLength:
+# LineLength:
+#   Enabled: false
+
+FileName:
   Enabled: false

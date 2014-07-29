@@ -12,7 +12,8 @@ module SDD
     attr_writer :items
 
     def initialize(params = {})
-      @database_file = File.expand_path(params.fetch('file', '~/.SynologyDownloader/database_new.yml'))
+      f = params.fetch('file', '~/.SynologyDownloader/database_new.yml')
+      @database_file = File.expand_path(f)
       @now = DateTime.now.strftime('%Y-%m-%d')
     end
 
@@ -29,10 +30,7 @@ module SDD
     end
 
     def add(item)
-      unless item.instance_of?(SDD::Item)
-        puts 'not instance_of'
-        return false
-      end
+      return false unless item.instance_of?(SDD::Item)
       return false if @items.key?(item.title)
       @items[item.title] = item
       true
@@ -44,7 +42,6 @@ module SDD
     end
 
     def replace(item)
-      # false Item does not exits.
       false unless @items.key?(item.title)
       @items[item.title] = item
     end
