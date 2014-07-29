@@ -10,6 +10,17 @@ require 'to_name'
 require_relative 'SDD'
 require_relative 'NAS'
 
+# Adding two functions. pad season and titelize name
+class FileNameInfo
+  def s_pad
+    @series.to_s.rjust(2, '0')
+  end
+
+  def n_titleize
+    @name.gsub(/\w+/, &:capitalize)
+  end
+end
+
 #
 module SDD
   # Main Class
@@ -18,24 +29,23 @@ module SDD
     attr_writer :downloader, :dl, :database
 
     def initialize(params = {})
-      @settings_file = File.expand_path(params.fetch(:settings_file, '~/.SynologyDownloader/settings.yml'))
-      @settings = load_yml(@settings_file)
-      @database = SDD::Database.new(@settings['database'])
-      @dl = NAS.get_dl(@settings['NAS'])
+      f = params.fetch(:settings_file, '~/.SynologyDownloader/settings.yml')
+      @ini = load_yml(File.expand_path(f))
+      @db = SDD::Database.new(@ini['database'])
+      @dl = NAS.get_dl(@ini['NAS'])
       puts "RSS-Downloader #{SDD::VERSION}"
     end
 
     def run
-      @database.open
+      @db.open
       load_rss
       if @dl.login
         move_start
         download_start
-        @database.save
+        @db.save
       else
         puts 'No connection to Server.'
       end
-
       @dl.logout
     end
 
@@ -48,28 +58,27 @@ module SDD
     private
 
     def load_rss
-      @settings['rss'].each do |k, u|
-        print "\nChecking: #{k}..."
+      @ini['rss'].each do |k, u|
+        print "Checking: #{k}...\n"
         open_with_retry(u) do |rss|
           continue if rss.nil?
           RSS::Parser.parse(rss).items.each do |item|
-            @database.add(SDD::Item.new('title' => item.title, 'url' => item.link))
+            @db.add(SDD::Item.new('title' => item.title, 'url' => item.link))
           end
         end
       end
-      print "\n"
     end
 
     def download_start
-      @database.each do |key, item|
+      @db.each do |key, item|
         next if item.status
-        puts "Downloading #{item.title}"
+        puts "New Item: #{item.title}"
         item.status = @dl.download(item.url)
       end
     end
 
     def move_start
-      path = get_share(@settings['shares']['download'])
+      path = get_share(@ini['shares']['download'])
       move_process_list(@dl.ls(path), 1)
     end
 
@@ -88,40 +97,44 @@ module SDD
       end
     end
 
-    def get_share(share)
-      "#{share['share']}#{share['path']}" if dl.mkdir(share['share'], share['path'].gsub(/^[\/]+/, ''))
+    def get_share(s)
+      if dl.mkdir(s['share'], s['path'].gsub(/^[\/]+/, ''))
+        "#{s['share']}#{s['path']}"
+      end
     end
 
-    def move_process_list(list, depth = 0, parent_is_root = true)
+    def move_process_list(list, depth = 0, p_is_root = true)
+      return true if depth < 0
       list['data']['files'].each do |e|
-        if e['isdir']
-          move_process_list(@dl.ls(e['path']) , depth - 1, false) if depth < 0
-        end
+        move_process_list(@dl.ls(e['path']) , depth - 1, false) if e['isdir']
+
         next if process_file_by_ext(e['additional']['type'])
-        path = generate_move_data(e, parent_is_root)
-        path_base = get_share(@settings['shares'][path['type']])
+
+        path = generate_move_data(e, p_is_root)
+        path_base = get_share(@ini['shares'][path['type']])
+
         dl.mkdir(path_base, path['dest'])
         dl.move(path['src'], "#{path_base}/#{path['dest']}")
       end
     end
 
     def process_file_by_ext(extention)
-      @settings['file']['type']['video'].map! { |c| c.downcase }
-      true unless @settings['file']['type']['video'].include?(extention.downcase)
+      @ini['file']['type']['video'].map! { |c| c.downcase }
+      true unless @ini['file']['type']['video'].include?(extention.downcase)
     end
 
-    def generate_move_data(file_info, parent_is_root = true)
-      ret = { 'src' => file_info['path'], 'dest' => '' , 'type' => nil }
-      info = ToName.to_name(file_info['name'])
-      ret['type'] = info.series.nil? ? 'movies' : 'series'
+    def generate_move_data(e, p_is_root = true)
+      info = ToName.to_name(e['name'])
+      ret = { 'src' => e['path'], 'dest' => '',
+              'type' => info.series.nil? ? 'movies' : 'series' }
 
       case ret['type']
       when 'movies'
-        ret['src'] = parent_is_root ? file_info['path'] : File.dirname(file_info['path'])
+        ret['src'] = p_is_root ? e['path'] : File.dirname(e['path'])
       when 'series'
-        ret['dest'] = "#{info.name.gsub(/\w+/, &:capitalize)}/Season #{info.series.to_s.rjust(2, '0')}/"
+        ret['dest'] = "#{info.n_titleize}/Season #{info.s_pad}/"
       end
       ret
     end
-  end
-end
+  end # End class
+end # End module
