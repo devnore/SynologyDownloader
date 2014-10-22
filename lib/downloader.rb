@@ -25,15 +25,21 @@ end
 module SDD
   # Main Class
   class Downloader
-    attr_reader :database_file, :downloader, :dl, :database
-    attr_writer :downloader, :dl, :database
+    attr_reader :msg, :database_file, :downloader, :dl, :database
+    attr_writer :msg, :downloader, :dl, :database
+
 
     def initialize(params = {})
       f = params.fetch(:settings_file, '~/.SynologyDownloader/settings.yml')
       @ini = load_yml(File.expand_path(f))
       @db = SDD::Database.new(@ini['database'])
       @dl = NAS.get_dl(@ini['NAS'])
-      puts "RSS-Downloader #{SDD::VERSION}"
+      @msg = []
+      puts version
+    end
+
+    def version
+      "RSS-Downloader #{SDD::VERSION}"
     end
 
     def run
@@ -58,21 +64,26 @@ module SDD
     private
 
     def load_rss
+      arr = []
       @ini['rss'].each do |k, u|
-        print "Checking: #{k}...\n"
-        open_with_retry(u) do |rss|
-          continue if rss.nil?
-          RSS::Parser.parse(rss).items.each do |item|
-            @db.add(SDD::Item.new('title' => item.title, 'url' => item.link))
+        arr << Thread.new do
+          @msg << "Checking: #{k}...\n"
+          open_with_retry(u) do |rss|
+            continue if rss.nil?
+            RSS::Parser.parse(rss).items.each do |item|
+              @db.add(SDD::Item.new('title' => item.title, 'url' => item.link))
+            end
           end
         end
       end
+      arr.each { |t| t.join; }
     end
 
+
     def download_start
-      @db.each do |key, item|
+      @db.each do |_key, item|
         next if item.status
-        puts "New Item: #{item.title}"
+        @msg << "New Item: #{item.title}"
         item.status = @dl.download(item.url)
       end
     end
@@ -83,7 +94,7 @@ module SDD
     end
 
     def merge_recursively(a, b)
-      a.merge(b) { |key, a_item, b_item| merge_recursively(a_item, b_item) }
+      a.merge(b) { |_key, a_item, b_item| merge_recursively(a_item, b_item) }
     end
 
     def open_with_retry(url, n = 5)
@@ -98,9 +109,7 @@ module SDD
     end
 
     def get_share(s)
-      if dl.mkdir(s['share'], s['path'].gsub(/^[\/]+/, ''))
-        "#{s['share']}#{s['path']}"
-      end
+      "#{s['share']}#{s['path']}" if dl.mkdir(s['share'], s['path'].gsub(/^[\/]+/, ''))
     end
 
     def move_process_list(list, depth = 0, p_is_root = true)
