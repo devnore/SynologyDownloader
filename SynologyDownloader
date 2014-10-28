@@ -8,3 +8,6 @@ Signal.trap('INT') {}
 
 fetcher = SDD::Downloader.new
 fetcher.run
+msg = fetcher::msg
+
+puts msg
