@@ -64,23 +64,14 @@ module SDD
       added = []
       @db.active_rss.each do |id, data|
         arr << Thread.new do
+          new_episodes = []
           @msg << "Checking: #{data['name']}...\n"
-          open_with_retry(data['rss']) do |rss|
-            next if rss.nil?
-            new_episodes = []
-            RSS::Parser.parse(rss).items.each do |item|
-              next unless @db.add?(item.link)
-              info = ToName.to_name(item.title)
-              new_episodes << {
-                'show_id' =>  id, 'season' =>  info.series,
-                'episode' =>  info.episode, 'url' => item.link,
-                'added' => Time.now.to_s, 'submitted' => false,
-                'moved' => false
-              }
-              added << "[Q]: #{data['name']} #{info.series}x#{info.episode} "
-            end
-            @db.bulk_add(new_episodes)
+          SDD::Rss.parse(data['rss']) do |item|
+            next unless @db.add?(item.link)
+            new_episodes << SDD::Rss.gen_episode(id, item)
+            added << "[Q]: #{data['name']}"
           end
+          @db.bulk_add(new_episodes)
         end
       end
       arr.each(&:join)
@@ -97,17 +88,6 @@ module SDD
       s = @ini['shares']['download']
       start_dir = [s['share'], s['path'].gsub(/^[\/]+/, '')].join('/')
       move_in_folder(@dl.ls(start_dir), 1)
-    end
-
-    def open_with_retry(url, n = 5)
-      1.upto(n) do
-        begin
-          open(url) { |handle| yield handle }
-          break
-        rescue
-          sleep(1 / 2)
-        end
-      end
     end
 
     def move_in_folder(list, depth = 0, is_root = true)

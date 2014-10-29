@@ -20,8 +20,8 @@ module SDD
     end
 
     def create_tables
-      db.execute <<-SQL
-      CREATE TABLE IF NOT EXIST `episodes` (
+      @db.execute <<-SQL
+      CREATE TABLE IF NOT EXISTS `episodes` (
         `id`        INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
         `show_id`   integer,
         `season`    integer,
@@ -33,8 +33,8 @@ module SDD
         );
       SQL
 
-      db.execute <<-SQL
-      CREATE TABLE IF NOT EXIST `shows` (
+      @db.execute <<-SQL
+      CREATE TABLE IF NOT EXISTS `shows` (
         `id`        INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
         `name`      varchar(255),
         `rss`       varchar(255),
@@ -46,17 +46,23 @@ module SDD
 
     def open
       @db = SQLite3::Database.new(@database_file)
+      create_tables
     end
 
     def close
-      @db.close
+      @db.close if @db
     end
 
     def add?(u)
-      rs = @db.get_first_row "SELECT id FROM episodes WHERE url LIKE '%#{u}%'"
-      return true if rs[0] == 0
+      return true if @db.get_first_row "SELECT id FROM episodes WHERE url LIKE '%#{u}%'"[0]
       false
     end
+
+    # def add?(u)
+    #   rs = @db.get_first_row "SELECT id FROM episodes WHERE url LIKE '%#{u}%'"
+    #   return true if rs[0] == 0
+    #   false
+    # end
 
     def add(item)
       bulk_add([item])
@@ -80,11 +86,6 @@ module SDD
           stm.close if stm
         end
       end
-    end
-
-    def replace(item)
-      false unless @items.key?(item.title)
-      @items[item.title] = item
     end
 
     def active_rss
@@ -127,7 +128,6 @@ module SDD
     end
 
     def show_id_from_name(name)
-      puts name
       stm = @db.prepare('SELECT id FROM shows WHERE name = ?')
       rs = stm.execute(name)
       result = []
@@ -137,14 +137,7 @@ module SDD
     end
 
     def sq_t_f(a)
-      return 't' if a
-      'f'
-    end
-
-    def each
-      @items.each do |i|
-        yield(i)
-      end
+      (a ? 't' : 'f')
     end
   end
 end

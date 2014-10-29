@@ -2,12 +2,41 @@
 # encoding: UTF-8
 
 $LOAD_PATH.unshift '.'
+require 'optparse'
 require_relative 'lib/downloader.rb'
 
 Signal.trap('INT') {}
 
-fetcher = SDD::Downloader.new
-fetcher.run
-msg = fetcher.msg
+options = {}
+OptionParser.new do |opts|
+  opts.banner = "Usage: SynologyDownloader [options]"
+  opts.on('-n', '--name NAME', 'name') { |v| options['name'] = v }
+  opts.on('-p', '--sourceport PORT', 'RSS-Feed URL') { |v| options['url'] = v }
+  opts.on('-h', '--help', 'Displays Help') do
+    puts opts
+    exit
+  end
+end.parse!
 
-puts msg
+case ARGV.first
+when 'add'
+  if options['name'].nil?
+    print 'Enter show name: '
+    options['name'] = $stdin.gets.chomp
+  end
+  if options['url'].nil?
+    print 'Enter RSS-feed for show: '
+    options['url'] = $stdin.gets.chomp
+  end
+
+  puts 'add stuff here.'
+when 'disable'
+  puts 'disable'
+when 'remove'
+  puts 'remove'
+else
+  fetcher = SDD::Downloader.new
+  fetcher.run
+  msg = fetcher.msg
+  puts msg
+end
