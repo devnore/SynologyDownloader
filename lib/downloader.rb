@@ -33,7 +33,7 @@ module SDD
     def initialize(params = {})
       f = params.fetch(:settings_file, '~/.SynologyDownloader/settings2.yml')
       @ini = load_yml(File.expand_path(f))
-      @ini['file']['type']['video'].map! { |c| c.downcase }
+      @ini['file']['type']['video'].map(&:downcase)
       @db = SDD::Database.new(@ini['database'])
       @dl = NAS.get_dl(@ini['NAS'])
       @msg = []
@@ -83,7 +83,7 @@ module SDD
           end
         end
       end
-      arr.each { |t| t.join; }
+      arr.each(&:join)
       @msg << added
     end
 
@@ -113,7 +113,7 @@ module SDD
     def move_in_folder(list, depth = 0, is_root = true)
       return true if depth < 0
       list['data']['files'].each do |e|
-        move_in_folder(@dl.ls(e['path']) , depth - 1, false) if e['isdir']
+        move_in_folder(@dl.ls(e['path']), depth - 1, false) if e['isdir']
         mv_obj = SDD::Item.new(e, is_root, @ini, @dl)
         if mv_obj.do_move?
           if mv_obj.move

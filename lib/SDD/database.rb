@@ -11,36 +11,34 @@ module SDD
   # Class def
   class Database
     include Enumerable
-    attr_reader :now , :items
+    attr_reader :now, :items
     attr_writer :items
 
     def initialize(params = {})
       f = params.fetch('file', '~/.SynologyDownloader/sqlite.db')
       @database_file = File.expand_path(f)
-      # logger = params.fetch('logger', 'STDERR')
-      @db = nil
     end
 
     def create_tables
       db.execute <<-SQL
       CREATE TABLE IF NOT EXIST `episodes` (
-        `id`  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-        `show_id` integer,
-        `season`  integer,
-        `episode` integer,
-        `url` varchar(255),
-        `added` datetime,
+        `id`        INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        `show_id`   integer,
+        `season`    integer,
+        `episode`   integer,
+        `url`       varchar(255),
+        `added`     datetime,
         `submitted` boolean,
-        `moved` boolean
+        `moved`     boolean
         );
       SQL
 
       db.execute <<-SQL
       CREATE TABLE IF NOT EXIST `shows` (
-        `id`  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-        `name`  varchar(255),
-        `rss` varchar(255),
-        `active`  boolean,
+        `id`        INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        `name`      varchar(255),
+        `rss`       varchar(255),
+        `active`    boolean,
         `rss_name`  varchar(255)
         );
       SQL
@@ -71,10 +69,15 @@ module SDD
         ) do |stm|
         items.each do |item|
           stm.execute(
-            item['show_id'], item['season'], item['episode'], item['url'],
-            item['added'], sq_t_f(item['submitted']), sq_t_f(item['submitted'])
+            item['show_id'],
+            item['season'],
+            item['episode'],
+            item['url'],
+            item['added'],
+            sq_t_f(item['submitted']),
+            sq_t_f(item['submitted'])
             )
-            stm.close if stm
+          stm.close if stm
         end
       end
     end
@@ -114,20 +117,24 @@ module SDD
       return unless move_object.data['type'] == 'series'
       show_id = move_object.data['info'].n_titleize
       stm = @db.prepare('UPDATE episodes set moved=? WHERE show_id=? AND season=? AND episode=?')
-      stm.execute(sq_t_f(moved), show_id, move_object.data['info'].series, move_object.data['info'].episode)
+      stm.execute(
+        sq_t_f(moved),
+        show_id,
+        move_object.data['info'].series,
+        move_object.data['info'].episode
+      )
       stm.close if stm
     end
 
     def show_id_from_name(name)
       puts name
-      stm = @db.prepare("SELECT id FROM shows WHERE name = ?")
+      stm = @db.prepare('SELECT id FROM shows WHERE name = ?')
       rs = stm.execute(name)
       result = []
       rs.each { |id | result << [id] }
       stm.close if stm
       result
     end
-
 
     def sq_t_f(a)
       return 't' if a

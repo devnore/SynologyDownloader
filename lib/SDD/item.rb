@@ -12,7 +12,7 @@ module SDD
       @dl = dl
       @is_root = is_root
       @data = { 'filename' => params.fetch('name', nil) }
-      @data['extention'] = params.fetch('additional', {}).fetch('type', nil).downcase
+      @data['ext'] = params.fetch('additional', {}).fetch('type', nil).downcase
       @data['isdir'] = params.fetch('isdir', nil)
       @data['path'], @data['src'] = params.fetch('path', nil)
       @data['info'] = ToName.to_name(@data['filename'])
@@ -20,7 +20,7 @@ module SDD
     end
 
     def do_move?
-      @ini['file']['type']['video'].include?(@data['extention'])
+      @ini['file']['type']['video'].include?(@data['ext'])
     end
 
     def get_share(create = true)

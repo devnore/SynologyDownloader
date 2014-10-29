@@ -1,11 +1,17 @@
-# CyclomaticComplexity:
-#   Severity: warning
-
-# NumericLiterals:
-#   Enabled: false
-
-# LineLength:
-#   Enabled: false
+Style/Documentation:
+  Enabled: false
 
 FileName:
   Enabled: false
+
+Style/Next:
+  Enabled: false
+
+Metrics/LineLength:
+  Max: 100
+
+Metrics/ClassLength:
+  Max: 130
+
+Metrics/MethodLength:
+  Max: 30

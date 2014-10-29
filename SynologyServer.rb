@@ -16,8 +16,8 @@ end
 
 get '/run' do
   fetcher.run
-  msg = fetcher::msg
-  fetcher::msg = []
+  msg = fetcher.msg
+  fetcher.msg = []
   msg.to_json
 end
 
@@ -32,7 +32,7 @@ end
 # g /shows/:show/add/:season/:episode/:url
 # g /shows/:show/:episode/download
 # g /shows/:show/:episode/downloaded
-# g /shows/:show/:episode/delete/[all|downloaded|]  # <----- HOW to do this neat.
+# g /shows/:show/:episode/delete/[all|downloaded|]  # <- HOW to do this neat.
 # p /shows/:show/:episode/move
 # g /shows/:show/:episode/moved
 
@@ -47,4 +47,3 @@ end
 # g /movie/:show|all/check
 # g /movie/:show|all/list/new
 # g /movie/:show/add/:season/:episode/:url
-

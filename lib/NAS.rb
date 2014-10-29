@@ -6,7 +6,7 @@ module NAS
   #
   # This needs to be dynamic.... (if other types of nas should be supported.)
   def self.get_dl(settings)
-    settings.each do |k, value|
+    settings.each do |_k, value|
       return NAS::Synology.new(value['settings'])
     end
   end
