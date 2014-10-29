@@ -33,6 +33,7 @@ module SDD
     def initialize(params = {})
       f = params.fetch(:settings_file, '~/.SynologyDownloader/settings2.yml')
       @ini = load_yml(File.expand_path(f))
+      @ini['file']['type']['video'].map! { |c| c.downcase }
       @db = SDD::Database.new(@ini['database'])
       @dl = NAS.get_dl(@ini['NAS'])
       @msg = []
@@ -47,7 +48,7 @@ module SDD
       @db.open
       process_rss
       if @dl.login
-        # move_start
+        move_start
         download_start
         @db.close
       else
@@ -65,22 +66,18 @@ module SDD
         arr << Thread.new do
           @msg << "Checking: #{data['name']}...\n"
           open_with_retry(data['rss']) do |rss|
+            next if rss.nil?
             new_episodes = []
-            continue if rss.nil?
             RSS::Parser.parse(rss).items.each do |item|
-              if @db.add?(item.link)
-                info = ToName.to_name(item.title)
-                new_episodes << {
-                  'show_id' =>  id,
-                  'season' =>  info.series,
-                  'episode' =>  info.episode,
-                  'url' => item.link,
-                  'added' => Time.now.to_s,
-                  'submitted' => false,
-                  'moved' => false
-                }
-                added << "[Q]: #{data['name']} #{info.series}x#{info.episode} "
-              end
+              next unless @db.add?(item.link)
+              info = ToName.to_name(item.title)
+              new_episodes << {
+                'show_id' =>  id, 'season' =>  info.series,
+                'episode' =>  info.episode, 'url' => item.link,
+                'added' => Time.now.to_s, 'submitted' => false,
+                'moved' => false
+              }
+              added << "[Q]: #{data['name']} #{info.series}x#{info.episode} "
             end
             @db.bulk_add(new_episodes)
           end
@@ -97,7 +94,9 @@ module SDD
     end
 
     def move_start
-      move_process_list(@dl.ls(get_share(@ini['shares']['download'])), 1)
+      s = @ini['shares']['download']
+      start_dir = [s['share'], s['path'].gsub(/^[\/]+/, '')].join('/')
+      move_in_folder(@dl.ls(start_dir), 1)
     end
 
     def open_with_retry(url, n = 5)
@@ -111,46 +110,17 @@ module SDD
       end
     end
 
-    def move_process_list(list, depth = 0, p_is_root = true)
+    def move_in_folder(list, depth = 0, is_root = true)
       return true if depth < 0
       list['data']['files'].each do |e|
-        move_process_list(@dl.ls(e['path']) , depth - 1, false) if e['isdir']
-
-        # unless (rewrite to return true if it should be processed)
-        next if process_file_by_ext(e['additional']['type'])
-
-        p = generate_move_data(e, p_is_root)
-        pbase = get_share(@ini['shares'][p['type']])
-
-        dl.mkdir(pbase, p['dest'])
-        dl.move(p['src'], "#{pbase}/#{path['dest']}")
+        move_in_folder(@dl.ls(e['path']) , depth - 1, false) if e['isdir']
+        mv_obj = SDD::Item.new(e, is_root, @ini, @dl)
+        if mv_obj.do_move?
+          if mv_obj.move
+            @db.set_moved(mv_obj, true) if mv_obj.data['type'] == 'series'
+          end
+        end
       end
-    end
-
-    # This is the wrong way around?
-    def process_file_by_ext(extention)
-      @ini['file']['type']['video'].map! { |c| c.downcase }
-      true unless @ini['file']['type']['video'].include?(extention.downcase)
-    end
-
-    def generate_move_data(e, p_is_root = true)
-      info = ToName.to_name(e['name'])
-      ret = {
-        'src' => e['path'],
-        'dest' => '',
-        'type' => info.series.nil? ? 'movies' : 'series'
-      }
-      case ret['type']
-      when 'movies'
-        ret['src'] = p_is_root ? e['path'] : File.dirname(e['path'])
-      when 'series'
-        ret['dest'] = "#{info.n_titleize}/Season #{info.s_pad}/"
-      end
-      ret
-    end
-
-    def get_share(s)
-      "#{s['share']}#{s['path']}" if dl.mkdir(s['share'], s['path'].gsub(/^[\/]+/, ''))
     end
 
     def load_yml(file)

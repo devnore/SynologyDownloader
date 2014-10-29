@@ -22,28 +22,28 @@ module SDD
     end
 
     def create_tables
-      # db.execute << SQL
-      # CREATE TABLE `episodes` (
-      #   `id`  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-      #   `show_id` integer,
-      #   `season`  integer,
-      #   `episode` integer,
-      #   `url` varchar(255),
-      #   `added` datetime,
-      #   `submitted` boolean,
-      #   `moved` boolean
-      #   );
-      # SQL
+      db.execute <<-SQL
+      CREATE TABLE IF NOT EXIST `episodes` (
+        `id`  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        `show_id` integer,
+        `season`  integer,
+        `episode` integer,
+        `url` varchar(255),
+        `added` datetime,
+        `submitted` boolean,
+        `moved` boolean
+        );
+      SQL
 
-      # db.execute << SQL
-      # CREATE TABLE `shows` (
-      #   `id`  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-      #   `name`  varchar(255),
-      #   `rss` varchar(255),
-      #   `active`  boolean,
-      #   `rss_name`  varchar(255)
-      #   );
-      # SQL
+      db.execute <<-SQL
+      CREATE TABLE IF NOT EXIST `shows` (
+        `id`  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        `name`  varchar(255),
+        `rss` varchar(255),
+        `active`  boolean,
+        `rss_name`  varchar(255)
+        );
+      SQL
     end
 
     def open
@@ -74,6 +74,7 @@ module SDD
             item['show_id'], item['season'], item['episode'], item['url'],
             item['added'], sq_t_f(item['submitted']), sq_t_f(item['submitted'])
             )
+            stm.close if stm
         end
       end
     end
@@ -100,12 +101,33 @@ module SDD
     def set_submitted(id, submitted)
       stm = @db.prepare('UPDATE episodes set submitted=? WHERE id=?')
       stm.execute(sq_t_f(submitted), id)
+      stm.close if stm
     end
 
     def set_moved(id, moved)
       stm = @db.prepare('UPDATE episodes set moved=? WHERE id=?')
       stm.execute(sq_t_f(moved), id)
+      stm.close if stm
     end
+
+    def set_moved(move_object, moved)
+      return unless move_object.data['type'] == 'series'
+      show_id = move_object.data['info'].n_titleize
+      stm = @db.prepare('UPDATE episodes set moved=? WHERE show_id=? AND season=? AND episode=?')
+      stm.execute(sq_t_f(moved), show_id, move_object.data['info'].series, move_object.data['info'].episode)
+      stm.close if stm
+    end
+
+    def show_id_from_name(name)
+      puts name
+      stm = @db.prepare("SELECT id FROM shows WHERE name = ?")
+      rs = stm.execute(name)
+      result = []
+      rs.each { |id | result << [id] }
+      stm.close if stm
+      result
+    end
+
 
     def sq_t_f(a)
       return 't' if a

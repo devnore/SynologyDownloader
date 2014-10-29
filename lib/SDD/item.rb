@@ -1,16 +1,48 @@
 # encoding: UTF-8
 #
+require 'to_name'
 
 module SDD
   #
   class Item
-    attr_reader :now , :date, :title, :url, :status
-    attr_writer :status
-    def initialize(params = {})
-      @title = params.fetch('title', nil)
-      @date = params.fetch('date', DateTime.now.strftime('%Y-%m-%d'))
-      @url = params.fetch('url', nil)
-      @status = false
+    attr_accessor :data
+
+    def initialize(params = {}, is_root = false, ini, dl)
+      @ini = ini
+      @dl = dl
+      @is_root = is_root
+      @data = { 'filename' => params.fetch('name', nil) }
+      @data['extention'] = params.fetch('additional', {}).fetch('type', nil).downcase
+      @data['isdir'] = params.fetch('isdir', nil)
+      @data['path'], @data['src'] = params.fetch('path', nil)
+      @data['info'] = ToName.to_name(@data['filename'])
+      @data['type'] = @data['info'].series.nil? ? 'movies' : 'series'
+    end
+
+    def do_move?
+      @ini['file']['type']['video'].include?(@data['extention'])
+    end
+
+    def get_share(create = true)
+      @_share = @ini['shares'][@data['type']]
+      @dl.mkdir(@_share['share'], @_share['path'].gsub(/^[\/]+/, '')) if create
+      [@_share['share'], @_share['path'].gsub(/^[\/]+/, '')].join('/')
+    end
+
+    def prep_move
+      if @data['type'] == 'series'
+        dest = "#{@data['info'].n_titleize}/Season #{@data['info'].s_pad}/"
+      end
+      @data['src'] = @is_root ? @data['path'] : File.dirname(@data['path'])
+      @share = get_share
+      @dl.mkdir(@share, dest)
+      @data['dest'] = [@share, dest].join('/')
+      @prep_move = true
+    end
+
+    def move
+      prep_move unless @prep_move
+      @dl.move(@data['src'], @data['dest'])
     end
   end
 end
