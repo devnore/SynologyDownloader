@@ -7,6 +7,9 @@ require 'yaml'
 require 'date'
 require 'fileutils'
 require 'to_name'
+require 'benchmark'
+require 'parallel'
+
 require_relative 'SDD'
 require_relative 'NAS'
 
@@ -31,12 +34,13 @@ module SDD
     attr_writer :msg, :downloader, :dl, :database
 
     def initialize(params = {})
-      f = params.fetch(:settings_file, '~/.SynologyDownloader/settings2.yml')
+      f = params.fetch(:settings_file, '~/.SynologyDownloader/settings.yml')
       @ini = load_yml(File.expand_path(f))
       @ini['file']['type']['video'].map(&:downcase)
       @db = SDD::Database.new(@ini['database'])
       @dl = NAS.get_dl(@ini['NAS'])
       @msg = []
+      @workers = Parallel.processor_count - 1
       puts version
     end
 
@@ -48,7 +52,7 @@ module SDD
       @db.open
       process_rss
       if @dl.login
-        move_start
+        process_move(1)
         download_start
         @db.close
       else
@@ -59,48 +63,59 @@ module SDD
 
     private
 
-    def process_rss
-      arr = []
-      added = []
-      @db.active_rss.each do |id, data|
-        arr << Thread.new do
-          new_episodes = []
-          @msg << "Checking: #{data['name']}...\n"
-          SDD::Rss.parse(data['rss']) do |item|
-            next unless @db.add?(item.link)
-            new_episodes << SDD::Rss.gen_episode(id, item)
-            added << "[Q]: #{data['name']}"
-          end
-          @db.bulk_add(new_episodes)
-        end
-      end
-      arr.each(&:join)
-      @msg << added
-    end
-
     def download_start
-      @db.process_new.each do |id, url|
+      Parallel.each(@db.process_new, in_processes: @workers, progress: 'Processing new Downloads') do |id, url|
+      #@db.process_new.each do |id, url|
         @db.set_submitted(id, @dl.download(url))
       end
     end
 
-    def move_start
-      s = @ini['shares']['download']
-      start_dir = [s['share'], s['path'].gsub(/^[\/]+/, '')].join('/')
-      move_in_folder(@dl.ls(start_dir), 1)
+    def process_rss
+      added = []
+      # @db.active_rss.each do |id, data|
+      Parallel.each(@db.active_rss, in_processes: @workers, progress: 'Checking RSS') do |id, data|
+        @msg << "Checking: #{data['name']}...\n"
+        new_episodes = []
+        SDD::Rss.parse(data['rss']) do |item|
+          next unless @db.add?(item.link)
+          new_episodes << SDD::Rss.gen_episode(id, item)
+          added << "[Q]: #{data['name']} | #{item.link}"
+        end
+        @db.bulk_add(new_episodes)
+      end
+      @msg << added
     end
 
-    def move_in_folder(list, depth = 0, is_root = true)
-      return true if depth < 0
-      list['data']['files'].each do |e|
-        move_in_folder(@dl.ls(e['path']), depth - 1, false) if e['isdir']
-        mv_obj = SDD::Item.new(e, is_root, @ini, @dl)
+    def process_move(depth)
+      s = @ini['shares']['download']
+      start_dir = [s['share'], s['path'].gsub(/^[\/]+/, '')].join('/')
+      items = move_list(start_dir, depth, true)
+
+      Parallel.each(items, in_processes: @workers, progress: 'Moving') do |file|
+        mv_obj = SDD::Item.new(file, @ini, @dl)
         if mv_obj.do_move?
           if mv_obj.move
             @db.set_moved(mv_obj, true) if mv_obj.data['type'] == 'series'
+          else
+            puts "#{mv_obj.data['path']} was not moved"
           end
         end
       end
+    end
+
+    def move_list(path, depth, is_root = false)
+      return [] if depth < 0 || path.nil?
+      items = []
+      li = @dl.ls(path)
+      li['data']['files'].each do |data|
+        data['is_root'] = is_root
+        items << data unless data['isdir']
+        if data['isdir']
+          ret = move_list(data['path'], depth - 1)
+          items.concat(ret) if ret.is_a?(Array)
+        end
+      end
+      items
     end
 
     def load_yml(file)

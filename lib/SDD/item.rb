@@ -7,12 +7,12 @@ module SDD
   class Item
     attr_accessor :data
 
-    def initialize(params = {}, is_root = false, ini, dl)
+    def initialize(params = {},  ini, dl)
       @ini = ini
       @dl = dl
-      @is_root = is_root
       @data = { 'filename' => params.fetch('name', nil) }
-      @data['ext'] = params.fetch('additional', {}).fetch('type', nil).downcase
+      @is_root = params.fetch('is_root', false)
+      @data['ext'] = params.fetch('additional', {}).fetch('type', nil).upcase
       @data['isdir'] = params.fetch('isdir', nil)
       @data['path'], @data['src'] = params.fetch('path', nil)
       @data['info'] = ToName.to_name(@data['filename'])

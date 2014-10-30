@@ -2,13 +2,9 @@
 
 require 'yaml'
 require 'sqlite3'
-
-# Old.
 require 'fileutils'
 
-# Database Class for saved rss-entries
 module SDD
-  # Class def
   class Database
     include Enumerable
     attr_reader :now, :items
@@ -29,7 +25,8 @@ module SDD
         `url`       varchar(255),
         `added`     datetime,
         `submitted` boolean,
-        `moved`     boolean
+        `moved`     boolean,
+        `rss_date`  varchar(255)
         );
       SQL
 
@@ -54,26 +51,26 @@ module SDD
     end
 
     def add?(u)
-      return true if @db.get_first_row "SELECT id FROM episodes WHERE url LIKE '%#{u}%'"[0]
-      false
+      ret = nil
+      stm = @db.prepare('SELECT id FROM episodes WHERE url LIKE ?')
+      stm.execute(u).each { |id| id.each { |x| ret = x } }
+      stm.close if stm
+      return false if ret.is_a? Numeric
+      true
     end
-
-    # def add?(u)
-    #   rs = @db.get_first_row "SELECT id FROM episodes WHERE url LIKE '%#{u}%'"
-    #   return true if rs[0] == 0
-    #   false
-    # end
 
     def add(item)
       bulk_add([item])
     end
 
     def bulk_add(items)
+
       @db.prepare('INSERT INTO `episodes`
-        (`show_id`,`season`,`episode`,`url`,`added`,`submitted`,`moved`)
-        VALUES (?,?,?,?,?,?,?)'
+        (`show_id`,`season`,`episode`,`url`,`added`,`submitted`,`moved`,`rss_date`)
+        VALUES (?,?,?,?,?,?,?,?)'
         ) do |stm|
         items.each do |item|
+          puts "Adding #{item}"
           stm.execute(
             item['show_id'],
             item['season'],
@@ -81,10 +78,11 @@ module SDD
             item['url'],
             item['added'],
             sq_t_f(item['submitted']),
-            sq_t_f(item['submitted'])
+            sq_t_f(item['submitted']),
+            item['rss_date']
             )
-          stm.close if stm
         end
+        stm.close if stm
       end
     end
 

@@ -69,7 +69,7 @@ module NAS
       f = {
         'api' => 'SYNO.FileStation.CopyMove', 'method' => 'start',
         'path' => src_file, 'dest_folder_path' => dst_dir,
-        'remove_src' => remove_src, 'overwrite' => false
+        'remove_src' => remove_src
       }
       _get(url_file, @fields.merge(f))['success']
     end

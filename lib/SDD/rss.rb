@@ -1,17 +1,17 @@
 # encoding: UTF-8
 
 module SDD
-  #
+
   class Rss
     def self.get(url, n = 5)
-      1.upto(n) do
+      # 1.upto(n) do
         begin
           open(url) { |handle| yield handle unless handle.nil? }
-          break
+          # break
         rescue
           sleep(1 / 2)
         end
-      end
+      # end
     end
 
     def self.parse(url, n = 5)
@@ -26,10 +26,9 @@ module SDD
         'show_id' =>  id, 'season' =>  info.series,
         'episode' =>  info.episode, 'url' => item.link,
         'added' => Time.now.to_s, 'submitted' => false,
-        'moved' => false
+        'moved' => false, 'rss_date' => item.pubDate.to_s
       }
       p
     end
-
   end
 end
