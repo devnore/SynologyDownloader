@@ -54,32 +54,30 @@ module SDD
       if @dl.login
         process_move(1)
         download_start
-        @db.close
       else
         puts 'No connection to Server.'
       end
       @dl.logout
+      @db.close
     end
 
     private
 
     def download_start
-      Parallel.each(@db.process_new, in_processes: @workers, progress: 'Processing new Downloads') do |id, url|
-      #@db.process_new.each do |id, url|
+      @db.process_new.each do |id, url|
         @db.set_submitted(id, @dl.download(url))
       end
     end
 
     def process_rss
       added = []
-      # @db.active_rss.each do |id, data|
-      Parallel.each(@db.active_rss, in_processes: @workers, progress: 'Checking RSS') do |id, data|
-        @msg << "Checking: #{data['name']}...\n"
+      @db.active_rss.each do |id, data|
+        print "Checking: #{data['name']}...\n"
         new_episodes = []
         SDD::Rss.parse(data['rss']) do |item|
           next unless @db.add?(item.link)
           new_episodes << SDD::Rss.gen_episode(id, item)
-          added << "[Q]: #{data['name']} | #{item.link}"
+          @msg << "[Q]: #{data['name']} | #{item.link}"
         end
         @db.bulk_add(new_episodes)
       end
@@ -91,15 +89,13 @@ module SDD
       start_dir = [s['share'], s['path'].gsub(/^[\/]+/, '')].join('/')
       items = move_list(start_dir, depth, true)
 
-      Parallel.each(items, in_processes: @workers, progress: 'Moving') do |file|
+      items.each do |file|
         mv_obj = SDD::Item.new(file, @ini, @dl)
-        if mv_obj.do_move?
           if mv_obj.move
             @db.set_moved(mv_obj, true) if mv_obj.data['type'] == 'series'
           else
-            puts "#{mv_obj.data['path']} was not moved"
+            puts "#{mv_obj.data['path']} was not moved."
           end
-        end
       end
     end
 

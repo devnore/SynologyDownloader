@@ -42,7 +42,7 @@ module SDD
 
     def move
       prep_move unless @prep_move
-      @dl.move(@data['src'], @data['dest'])
+      @dl.move(@data['src'], @data['dest']) if do_move?
     end
   end
 end
