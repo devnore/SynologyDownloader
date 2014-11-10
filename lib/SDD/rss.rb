@@ -1,21 +1,20 @@
 # encoding: UTF-8
 
 module SDD
-
   class Rss
     def self.get(url, n = 5)
-      # 1.upto(n) do
+      1.upto(n) do
         begin
           open(url) { |handle| yield handle unless handle.nil? }
-          # break
+          break
         rescue
           sleep(1 / 2)
         end
-      # end
+      end
     end
 
     def self.parse(url, n = 5)
-      self.get(url, n) do |rss|
+      get(url, n) do |rss|
         RSS::Parser.parse(rss).items.each { |handle| yield handle }
       end
     end

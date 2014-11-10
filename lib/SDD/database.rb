@@ -64,7 +64,6 @@ module SDD
     end
 
     def bulk_add(items)
-
       @db.prepare('INSERT INTO `episodes`
         (`show_id`,`season`,`episode`,`url`,`added`,`submitted`,`moved`,`rss_date`)
         VALUES (?,?,?,?,?,?,?,?)'

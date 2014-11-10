@@ -92,12 +92,12 @@ module SDD
 
       items.each do |file|
         mv_obj = SDD::Item.new(file, @ini, @dl)
-          if mv_obj.move
-            @db.set_moved(mv_obj, true) if mv_obj.data['type'] == 'series'
-            msg << "Moved: #{mv_obj.data['info']}"
-          else
-            puts "#{mv_obj.data['path']} was not moved."
-          end
+        if mv_obj.move
+          @db.set_moved(mv_obj, true) if mv_obj.data['type'] == 'series'
+          msg << "Moved: #{mv_obj.data['info']}"
+        else
+          puts "#{mv_obj.data['path']} was not moved."
+        end
       end
       puts msg
     end
