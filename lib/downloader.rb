@@ -85,6 +85,7 @@ module SDD
     end
 
     def process_move(depth)
+      msg = []
       s = @ini['shares']['download']
       start_dir = [s['share'], s['path'].gsub(/^[\/]+/, '')].join('/')
       items = move_list(start_dir, depth, true)
@@ -93,10 +94,12 @@ module SDD
         mv_obj = SDD::Item.new(file, @ini, @dl)
           if mv_obj.move
             @db.set_moved(mv_obj, true) if mv_obj.data['type'] == 'series'
+            msg << "Moved: #{mv_obj.data['info']}"
           else
             puts "#{mv_obj.data['path']} was not moved."
           end
       end
+      puts msg
     end
 
     def move_list(path, depth, is_root = false)
