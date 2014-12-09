@@ -20,6 +20,8 @@ module SDD
     end
 
     def self.gen_episode(id, item)
+      # Id older than x days... skip the mofo
+      return false if (Time.now - Time.parse(item.pubDate.to_s)) / 86_400 > 30
       info = ToName.to_name(item.title)
       p = {
         'show_id' =>  id, 'season' =>  info.series,

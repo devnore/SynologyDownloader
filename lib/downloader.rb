@@ -77,6 +77,7 @@ module SDD
         SDD::Rss.parse(data['rss']) do |item|
           next unless @db.add?(item.link)
           ep = SDD::Rss.gen_episode(id, item)
+          next unless ep
           new_episodes << ep
           @msg << "[Q]: #{data['name']} | S#{ep['season']}E#{ep['episode']}"
         end
