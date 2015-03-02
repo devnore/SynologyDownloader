@@ -19,12 +19,13 @@ module SDD
       end
     end
 
-    def self.gen_episode(id, item)
-      # Id older than x days... skip the mofo
+    def self.gen_episode(item)
       return false if (Time.now - Time.parse(item.pubDate.to_s)) / 86_400 > 30
       info = ToName.to_name(item.title)
       p = {
-        'show_id' =>  id, 'season' =>  info.series,
+        'id' => item.showrss_episode.to_i, 'show_name' => item.showrss_showname,
+        'toname_show_name' => info.n_titleize,
+        'show_id' =>  item.showrss_showid , 'season' =>  info.series,
         'episode' =>  info.episode, 'url' => item.link,
         'added' => Time.now.to_s, 'submitted' => false,
         'moved' => false, 'rss_date' => item.pubDate.to_s

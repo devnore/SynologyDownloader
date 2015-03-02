@@ -39,6 +39,15 @@ module SDD
         `rss_name`  varchar(255)
         );
       SQL
+
+      @db.execute <<-SQL
+      CREATE TABLE IF NOT EXISTS `show_name_mapper` (
+        `id`  INTEGER NOT NULL PRIMARY KEY,
+        `rss_showname` varchar(255),
+        `toname_showname` varchar(255),
+        UNIQUE(rss_showname, toname_showname)
+      );
+      SQL
     end
 
     def open
@@ -52,7 +61,7 @@ module SDD
 
     def add?(u)
       ret = nil
-      stm = @db.prepare('SELECT id FROM episodes WHERE url LIKE ?')
+      stm = @db.prepare('SELECT id FROM episodes WHERE id=?')
       stm.execute(u).each { |id| id.each { |x| ret = x } }
       stm.close if stm
       return false if ret.is_a? Numeric
@@ -65,20 +74,37 @@ module SDD
 
     def bulk_add(items)
       @db.prepare('INSERT INTO `episodes`
-        (`show_id`,`season`,`episode`,`url`,`added`,`submitted`,`moved`,`rss_date`)
-        VALUES (?,?,?,?,?,?,?,?)'
+        (`id`,`show_id`,`season`,`episode`,`url`,`added`,`submitted`,`moved`,`rss_date`)
+        VALUES (?,?,?,?,?,?,?,?,?)'
         ) do |stm|
         items.each do |item|
-          puts "Adding #{item}"
+ #         puts "Adding #{item.show_name}"
           stm.execute(
-            item['show_id'],
-            item['season'],
-            item['episode'],
-            item['url'],
-            item['added'],
-            sq_t_f(item['submitted']),
-            sq_t_f(item['submitted']),
+            item['id'], item['show_id'],
+            item['season'], item['episode'],
+            item['url'], item['added'],
+            sq_t_f(item['submitted']), sq_t_f(item['submitted']),
             item['rss_date']
+            )
+        end
+        stm.close if stm
+      end
+      add_show_mappings(items)
+    end
+
+    def add_show_mapping(item)
+      add_show_mappings([item])
+    end
+
+    def add_show_mappings(items)
+      @db.prepare('INSERT OR IGNORE INTO `show_name_mapper`
+        (`id`,`rss_showname`,`toname_showname`)
+        VALUES (?,?,?)') do |stm|
+        items.each do |item|
+          stm.execute(
+            item['show_id'].to_i,
+            item['show_name'],
+            item['toname_show_name']
             )
         end
         stm.close if stm
@@ -113,25 +139,26 @@ module SDD
 
     def set_moved(move_object, moved)
       return unless move_object.data['type'] == 'series'
-      show_id = move_object.data['info'].n_titleize
-      stm = @db.prepare('UPDATE episodes set moved=? WHERE show_id=? AND season=? AND episode=?')
-      stm.execute(
+      toname_showname = move_object.data['info'].n_titleize
+
+      stm = @db.prepare('SELECT id from `show_name_mapper` where toname_showname LIKE ?')
+      rs = stm.execute(toname_showname)
+      row = rs.next
+      show_id = row[0]
+      stm.close if stm
+
+      return if show_id.nil?
+
+      stmt = @db.prepare('UPDATE episodes set moved=? WHERE show_id=? AND season=? AND episode=?')
+      stmt.execute(
         sq_t_f(moved),
         show_id,
         move_object.data['info'].series,
         move_object.data['info'].episode
       )
-      stm.close if stm
+      stmt.close if stmt
     end
 
-    def show_id_from_name(name)
-      stm = @db.prepare('SELECT id FROM shows WHERE name = ?')
-      rs = stm.execute(name)
-      result = []
-      rs.each { |id | result << [id] }
-      stm.close if stm
-      result
-    end
 
     def sq_t_f(a)
       (a ? 't' : 'f')

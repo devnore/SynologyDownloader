@@ -2,6 +2,7 @@
 # Rss Fetcher
 
 require 'rss'
+require 'simple-rss'
 require 'open-uri'
 require 'yaml'
 require 'date'
@@ -65,7 +66,7 @@ module SDD
 
     def download_start
       @db.process_new.each do |id, url|
-        @db.set_submitted(id, @dl.download(url))
+       @db.set_submitted(id, @dl.download(url))
       end
     end
 
@@ -74,13 +75,19 @@ module SDD
       @db.active_rss.each do |id, data|
         print "Checking: #{data['name']}...\n"
         new_episodes = []
-        SDD::Rss.parse(data['rss']) do |item|
-          next unless @db.add?(item.link)
-          ep = SDD::Rss.gen_episode(id, item)
+        SimpleRSS.item_tags << :"showrss:showid"
+        SimpleRSS.item_tags << :"showrss:episode"
+        SimpleRSS.item_tags << :"showrss:showname"
+
+        rss = SimpleRSS.parse open(data['rss'])
+        rss.items.each do  |item|
+          next unless @db.add?(item.showrss_episode.to_i)
+          ep = SDD::Rss.gen_episode(item)
           next unless ep
           new_episodes << ep
-          @msg << "[Q]: #{data['name']} | S#{ep['season']}E#{ep['episode']}"
+          @msg << "[Q]: #{item.showrss_showname} | S#{ep['season']}E#{ep['episode']}"
         end
+
         @db.bulk_add(new_episodes)
       end
       @msg << added
@@ -98,7 +105,7 @@ module SDD
           @db.set_moved(mv_obj, true) if mv_obj.data['type'] == 'series'
           msg << "Moved: #{mv_obj.data['info']}"
         else
-          puts "#{mv_obj.data['path']} was not moved."
+          puts "#{mv_obj.data['path']} was not moved. #{mv_obj.data['info']}"
         end
       end
       puts msg
