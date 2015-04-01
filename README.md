@@ -1,5 +1,7 @@
 SynologyDownloader
 ==================
+[![Code Climate](https://codeclimate.com/github/devnore/SynologyDownloader/badges/gpa.svg)](https://codeclimate.com/github/devnore/SynologyDownloader)
+
 <!-- MarkdownTOC depth=3 autolink=true -->
 
 - [Installation][installation]
@@ -8,8 +10,6 @@ SynologyDownloader
 - [Disclamer][disclamer]
 
 <!-- /MarkdownTOC -->
-
-[![Code Climate](https://codeclimate.com/github/devnore/SynologyDownloader/badges/gpa.svg)](https://codeclimate.com/github/devnore/SynologyDownloader)
 
 This is a RSS-downloader written in ruby, it takes a list of RSS-feeds and sends the torrent-link in the rss to a Synology Downloadstation to be downloaded. the RSS-downloader also saves a local database with which items that has been successfully added to the download-queue of the Downloadstation.
 
