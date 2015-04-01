@@ -1,5 +1,13 @@
 SynologyDownloader
 ==================
+<!-- MarkdownTOC depth=3 autolink=true -->
+
+- [Installation][installation]
+- [Configuration][configuration]
+- [Usage][usage]
+- [Disclamer][disclamer]
+
+<!-- /MarkdownTOC -->
 
 [![Code Climate](https://codeclimate.com/github/devnore/SynologyDownloader/badges/gpa.svg)](https://codeclimate.com/github/devnore/SynologyDownloader)
 
