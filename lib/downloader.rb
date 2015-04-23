@@ -67,40 +67,42 @@ module SDD
     def download_start
       @db.process_new.each do |id, url|
        @db.set_submitted(id, @dl.download(url))
+     end
+   end
+
+   def process_rss
+    added = []
+    @db.active_rss.each do |id, data|
+      print "Checking: #{data['name']}...\n"
+      new_episodes = []
+      SimpleRSS.item_tags << :"showrss:showid"
+      SimpleRSS.item_tags << :"showrss:episode"
+      SimpleRSS.item_tags << :"showrss:showname"
+
+      rss = SimpleRSS.parse open(data['rss'])
+      rss.items.each do  |item|
+        next unless @db.add?(item.showrss_episode.to_i)
+        ep = SDD::Rss.gen_episode(item)
+        next unless ep
+        new_episodes << ep
+        @msg << "[Q]: #{item.showrss_showname} | S#{ep['season']}E#{ep['episode']}"
       end
+
+      @db.bulk_add(new_episodes)
     end
+    @msg << added
+  end
 
-    def process_rss
-      added = []
-      @db.active_rss.each do |id, data|
-        print "Checking: #{data['name']}...\n"
-        new_episodes = []
-        SimpleRSS.item_tags << :"showrss:showid"
-        SimpleRSS.item_tags << :"showrss:episode"
-        SimpleRSS.item_tags << :"showrss:showname"
+  def process_move(depth)
+    msg = []
+    s = @ini['shares']['download']
+    start_dir = [s['share'], s['path'].gsub(/^[\/]+/, '')].join('/')
+    items = move_list(start_dir, depth, true)
 
-        rss = SimpleRSS.parse open(data['rss'])
-        rss.items.each do  |item|
-          next unless @db.add?(item.showrss_episode.to_i)
-          ep = SDD::Rss.gen_episode(item)
-          next unless ep
-          new_episodes << ep
-          @msg << "[Q]: #{item.showrss_showname} | S#{ep['season']}E#{ep['episode']}"
-        end
-
-        @db.bulk_add(new_episodes)
-      end
-      @msg << added
-    end
-
-    def process_move(depth)
-      msg = []
-      s = @ini['shares']['download']
-      start_dir = [s['share'], s['path'].gsub(/^[\/]+/, '')].join('/')
-      items = move_list(start_dir, depth, true)
-
-      items.each do |file|
-        mv_obj = SDD::Item.new(file, @ini, @dl)
+    items.each do |file|
+      mv_obj = SDD::Item.new(file, @ini, @dl)
+      mv_obj.prep_move
+      if mv_obj.data['type'] == 'series'
         if mv_obj.move
           @db.set_moved(mv_obj, true) if mv_obj.data['type'] == 'series'
           msg << "Moved: #{mv_obj.data['info']}"
@@ -108,28 +110,29 @@ module SDD
           puts "#{mv_obj.data['path']} was not moved. #{mv_obj.data['info']}"
         end
       end
-      puts msg
     end
-
-    def move_list(path, depth, is_root = false)
-      return [] if depth < 0 || path.nil?
-      items = []
-      li = @dl.ls(path)
-      li['data']['files'].each do |data|
-        data['is_root'] = is_root
-        items << data unless data['isdir']
-        if data['isdir']
-          ret = move_list(data['path'], depth - 1)
-          items.concat(ret) if ret.is_a?(Array)
-        end
-      end
-      items
-    end
-
-    def load_yml(file)
-      return  YAML.load_file file
-    rescue
-      return {}
-    end
+    puts msg
   end
+
+  def move_list(path, depth, is_root = false)
+    return [] if depth < 0 || path.nil?
+    items = []
+    li = @dl.ls(path)
+    li['data']['files'].each do |data|
+      data['is_root'] = is_root
+      items << data unless data['isdir']
+      if data['isdir']
+        ret = move_list(data['path'], depth - 1)
+        items.concat(ret) if ret.is_a?(Array)
+      end
+    end
+    items
+  end
+
+  def load_yml(file)
+    return  YAML.load_file file
+  rescue
+    return {}
+  end
+end
 end

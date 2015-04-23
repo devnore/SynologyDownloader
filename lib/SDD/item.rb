@@ -37,7 +37,7 @@ module SDD
       @share = get_share
       @dl.mkdir(@share, dest)
       @data['dest'] = [@share, dest].join('/')
-      @prep_move = true
+      @prep_move = true # Temp fix to disallow movies...
     end
 
     def move
