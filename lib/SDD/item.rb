@@ -1,6 +1,5 @@
 # encoding: UTF-8
 #
-require 'to_name'
 
 module SDD
   #
@@ -30,6 +29,7 @@ module SDD
     end
 
     def prep_move
+      false unless @data['type'] == 'series'
       if @data['type'] == 'series'
         dest = "#{@data['info'].n_titleize}/Season #{@data['info'].s_pad}/"
       end
@@ -37,7 +37,7 @@ module SDD
       @share = get_share
       @dl.mkdir(@share, dest)
       @data['dest'] = [@share, dest].join('/')
-      @prep_move = true # Temp fix to disallow movies...
+      @prep_move = true
     end
 
     def move
