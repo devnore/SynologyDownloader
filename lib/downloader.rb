@@ -7,12 +7,13 @@ require 'open-uri'
 require 'yaml'
 require 'date'
 require 'fileutils'
-require 'to_name'
+# require 'to_name'
 require 'benchmark'
 require 'parallel'
 
 require_relative 'SDD'
 require_relative 'NAS'
+require_relative 'toname/to_name'
 
 # Adding two functions. pad season and titelize name
 class FileNameInfo
@@ -101,7 +102,9 @@ module SDD
 
     items.each do |file|
       mv_obj = SDD::Item.new(file, @ini, @dl)
-      mv_obj.prep_move
+
+      next unless mv_obj.prep_move
+
       if mv_obj.data['type'] == 'series'
         if mv_obj.move
           @db.set_moved(mv_obj, true) if mv_obj.data['type'] == 'series'
@@ -120,7 +123,9 @@ module SDD
     li = @dl.ls(path)
     li['data']['files'].each do |data|
       data['is_root'] = is_root
-      items << data unless data['isdir']
+      if @ini['file']['type']['video'].include?(data['additional']['type'])
+        items << data unless data['isdir']
+      end
       if data['isdir']
         ret = move_list(data['path'], depth - 1)
         items.concat(ret) if ret.is_a?(Array)
