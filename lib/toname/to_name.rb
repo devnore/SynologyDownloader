@@ -76,7 +76,6 @@ class ToName
         session = $1.to_i
         episode = $2.to_i
         name = "#{name}#{year}" unless rest.nil?
-        puts name
         year = nil # When the year is present with the series info assume it's part of the title
         break
       end
